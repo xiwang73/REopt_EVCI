@@ -28,22 +28,22 @@ function add_general_storage_dispatch_constraints(m, p, b; _n="")
     # Constraint (4a): initial state of charge
 	@constraint(m,
         m[Symbol("dvStoredEnergy"*_n)][b, 0] == p.s.storage.attr[b].soc_init_fraction * m[Symbol("dvStorageEnergy"*_n)][b]
-    )
+    )  #  Stored Energy at the initial state. (Imagine with the stored capacity is 50 kWh and then init SOC is 50 percent, then the battery percentage at initial time t=0, we have 25 kWh as our capacity)
 
     #Constraint (4n): State of charge upper bound is storage system size
     @constraint(m, [ts in p.time_steps],
         m[Symbol("dvStoredEnergy"*_n)][b,ts] <= m[Symbol("dvStorageEnergy"*_n)][b]
-    )
+    ) # MAking sure that the stored energy will not be greater than the max size. 
 
     # Constraint (4j): Minimum state of charge
 	@constraint(m, [ts in p.time_steps],
         m[Symbol("dvStoredEnergy"*_n)][b, ts] >= p.s.storage.attr[b].soc_min_fraction * m[Symbol("dvStorageEnergy"*_n)][b]
-    )
+    ) #Making sure that it is always greater or equal to th min stored energy 
 
     #Constraint (4j): Dispatch from storage is no greater than power capacity
 	@constraint(m, [ts in p.time_steps],
         m[Symbol("dvStoragePower"*_n)][b] >= m[Symbol("dvDischargeFromStorage"*_n)][b, ts]
-    )
+    ) #As simple as the description 
 
 end
 
@@ -56,7 +56,7 @@ function add_elec_storage_dispatch_constraints(m, p, b; _n="")
             sum(p.s.storage.attr[b].charge_efficiency * m[Symbol("dvProductionToStorage"*_n)][b, t, ts] for t in p.techs.elec) 
             + p.s.storage.attr[b].grid_charge_efficiency * m[Symbol("dvGridToStorage"*_n)][b, ts] 
             - m[Symbol("dvDischargeFromStorage"*_n)][b,ts] / p.s.storage.attr[b].discharge_efficiency
-        )
+        ) # Bascially energy stored the previous hour, and the energy that has been produced and used in the present hour, taken account of production to storage, grid to storage and discharge to storage. 
 	)
 
 	# Constraint (4h): state-of-charge for electrical storage - no grid
@@ -71,13 +71,13 @@ function add_elec_storage_dispatch_constraints(m, p, b; _n="")
 	@constraint(m, [ts in p.time_steps],
         m[Symbol("dvStoragePower"*_n)][b] >= 
             sum(m[Symbol("dvProductionToStorage"*_n)][b, t, ts] for t in p.techs.elec) + m[Symbol("dvGridToStorage"*_n)][b, ts]
-    )
+    ) # U dont want to burn ur storage that delivers 60 kW if it is rated 50 kW
 	
 	#Constraint (4k)-alt: Dispatch to and from electrical storage is no greater than power capacity
 	@constraint(m, [ts in p.time_steps_with_grid],
         m[Symbol("dvStoragePower"*_n)][b] >= m[Symbol("dvDischargeFromStorage"*_n)][b, ts] + 
             sum(m[Symbol("dvProductionToStorage"*_n)][b, t, ts] for t in p.techs.elec) + m[Symbol("dvGridToStorage"*_n)][b, ts]
-    )
+    ) # samethig as the previos one. 
 
 	#Constraint (4l)-alt: Dispatch from electrical storage is no greater than power capacity (no grid connection)
 	@constraint(m, [ts in p.time_steps_without_grid],
@@ -175,5 +175,5 @@ function add_storage_sum_constraints(m, p; _n="")
 	@constraint(m, [ts in p.time_steps_with_grid],
       sum(m[Symbol("dvGridPurchase"*_n)][ts, tier] for tier in 1:p.s.electric_tariff.n_energy_tiers) >= 
       sum(m[Symbol("dvGridToStorage"*_n)][b, ts] for b in p.s.storage.types.elec)
-    )
+    ) # Invoking sense here, u dont want ot get more energy that u get ur total energy purchase from grid. 
 end
