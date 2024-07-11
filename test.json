@@ -1,0 +1,46 @@
+{
+    "Site": {
+        "longitude": 139.789031,
+        "latitude": 35.649906,
+        "roof_squarefeet": 162922,
+        "land_acres": 13,
+        "node": 3
+    },
+    "ElectricLoad": {
+        "loads_kw": [ 
+        1000.0   
+        ],
+        "critical_load_fraction": 1.0
+    },
+    
+    "ElectricTariff": {
+        "monthly_energy_rates": [
+            0.65,
+            0.2,
+            0.15,
+            0.1,
+            0.15,
+            0.2,
+            0.4,
+            0.5,
+            0.15,
+            0.1,
+            0.03,
+            0.2
+        ],
+        "monthly_demand_rates": [
+            6.5,
+            3.1,
+            3.1,
+            3.1,
+            4.3,
+            7.5,
+            10,
+            10,
+            6.5,
+            3.1,
+            2.33,
+            7.5
+        ]
+    }
+}
