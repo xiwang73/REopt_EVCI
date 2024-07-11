@@ -3,11 +3,14 @@
 function add_elec_load_balance_constraints(m, p; _n="") 
 
 	##Constraint (8a): Electrical Load Balancing with Grid
-    if isempty(p.s.electric_tariff.export_bins)
-        conrefs = @constraint(m, [ts in p.time_steps_with_grid],
-            sum(p.production_factor[t, ts] * p.levelization_factor[t] * m[Symbol("dvRatedProduction"*_n)][t,ts] for t in p.techs.elec)  
-            + sum(m[Symbol("dvDischargeFromStorage"*_n)][b,ts] for b in p.s.storage.types.elec) 
+    if isempty(p.s.electric_tariff.export_bins) # Export Bins is just to collect the tariff rates of wholesale price, net metering or excees rate added on top 
+        conrefs = @constraint(m, [ts in p.time_steps_with_grid], #- Building model with decision inputs, p- datasets ts - timesteps
+            sum(p.production_factor[t, ts] * p.levelization_factor[t] * m[Symbol("dvRatedProduction"*_n)][t,ts] for t in p.techs.elec) #The actual Production of the energy for all the tech in elec.  We multiply the actual production of one technology and then we sum up all the tech in as one production. 
+            
+            # production factor -Input (Maybe an efficiency)  # - Levelization factor - Degradation for techs 
+            + sum(m[Symbol("dvDischargeFromStorage"*_n)][b,ts] for b in p.s.storage.types.elec) #*_n - Dynamicaaly create each export varibales for each technology and timesteps.  
             + sum(m[Symbol("dvGridPurchase"*_n)][ts, tier] for tier in 1:p.s.electric_tariff.n_energy_tiers)
+            # Exporting energy rates for every tiers in times steps # (The above equation is basically energy from tech + storage + grid)
             ==
             sum(sum(m[Symbol("dvProductionToStorage"*_n)][b, t, ts] for b in p.s.storage.types.elec) 
                 + m[Symbol("dvCurtail"*_n)][t, ts] for t in p.techs.elec)
@@ -17,6 +20,7 @@ function add_elec_load_balance_constraints(m, p; _n="")
             + p.s.electric_load.loads_kw[ts]
             - p.s.cooling_load.loads_kw_thermal[ts] / p.cop["ExistingChiller"]
             + sum(p.ghp_electric_consumption_kw[g,ts] * m[Symbol("binGHP"*_n)][g] for g in p.ghp_options)
+            # Energy production from tech then we curtail them restricting only some amount of power to be stored in battery, then we have grid to storage and we account the heating and cooling loads, and the load profile from BIM (Substract the chiller load) and add GHP load if rrequired  
         )
     else
         conrefs = @constraint(m, [ts in p.time_steps_with_grid],
@@ -34,7 +38,8 @@ function add_elec_load_balance_constraints(m, p; _n="")
             - p.s.cooling_load.loads_kw_thermal[ts] / p.cop["ExistingChiller"]
             + sum(p.ghp_electric_consumption_kw[g,ts] * m[Symbol("binGHP"*_n)][g] for g in p.ghp_options)
         )
-    end
+    end # if the export Bin is not empty, then we can sell it back to the grid as given in line 32.  + sum(m[Symbol("dvProductionToGrid"*_n)][t, u, ts] for u in p.export_bins_by_tech[t]) 
+ 
 
 	for (i, cr) in enumerate(conrefs)
 		JuMP.set_name(cr, "con_load_balance"*_n*string("_t", i))
@@ -87,7 +92,7 @@ function add_production_constraints(m, p; _n="")
             <= 
             p.production_factor[t, ts] * p.levelization_factor[t] * m[Symbol("dvRatedProduction"*_n)][t, ts]
         )
-    end
+    end ######## Placeholder (Need to add Production to EV, EV to Grid)
 
 	# Constraint (4e): Electrical production sent to storage or curtailed must be less than technology's rated production - no grid
 	@constraint(m, [t in p.techs.elec, ts in p.time_steps_without_grid],
