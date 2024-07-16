@@ -141,6 +141,7 @@ include("core/reopt_inputs.jl")
 include("core/bau_inputs.jl")
 include("core/cost_curve.jl")
 include("core/simulated_load.jl")
+include("core/charging_station.jl") # Charging station line
 
 include("constraints/outage_constraints.jl")
 include("constraints/storage_constraints.jl")
@@ -166,6 +167,7 @@ include("mpc/inputs.jl")
 include("mpc/constraints.jl")
 
 include("core/techs.jl")
+include("results/charging_station.jl") # Charging station line
 include("results/results.jl")
 include("results/site.jl")
 include("results/electric_tariff.jl")
